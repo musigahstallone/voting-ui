@@ -20,7 +20,7 @@ export default function PollDetailsClient({ initialPoll }: { initialPoll: Poll }
   const { toast } = useToast();
   const { token } = useAuth();
   
-  const wsUrl = typeof window !== 'undefined' ? `ws://${window.location.host}/ws` : null;
+  const wsUrl = typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws` : null;
   const { lastMessage, isConnected } = useWebSocket(wsUrl, poll.id);
 
   useEffect(() => {
