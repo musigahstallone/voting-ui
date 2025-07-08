@@ -30,6 +30,8 @@ const pollSchema = z.object({
 
 type PollFormValues = z.infer<typeof pollSchema>;
 
+const API_URL = 'http://localhost:8080/api';
+
 export default function CreatePollPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -41,7 +43,7 @@ export default function CreatePollPage() {
     defaultValues: {
       title: '',
       description: '',
-      category: '',
+      category: 'General',
       is_anonymous: false,
       starts_at: new Date().toISOString().slice(0, 16),
       ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
@@ -73,15 +75,17 @@ export default function CreatePollPage() {
   };
 
   const onSubmit = async (data: PollFormValues) => {
-    // const payload = { ...data, options: data.options.map(opt => opt.value) };
+    const payload = { ...data, options: data.options.map(opt => opt.value) };
     try {
-      // Mock API call
-      // const response = await fetch('/api/polls', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
-      // if (!response.ok) throw new Error('Failed to create poll');
-      // const newPoll = await response.json();
-      const newPollId = 'poll' + (Math.random()*100).toFixed(0);
+      const response = await fetch(`${API_URL}/polls`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+        body: JSON.stringify(payload) 
+      });
+      if (!response.ok) throw new Error('Failed to create poll');
+      const newPoll = await response.json();
       toast({ title: 'Poll Created!', description: 'Your poll is now live.' });
-      router.push(`/polls/${newPollId}`);
+      router.push(`/polls/${newPoll.id}`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Creation Failed', description: error instanceof Error ? error.message : 'An unknown error occurred.' });
     }

@@ -7,12 +7,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, user: User) => void;
+  login: (token: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const API_URL = 'http://localhost:8080/api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -35,12 +37,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = (newToken: string, userData: User) => {
+  const login = async (newToken: string) => {
     sessionStorage.setItem('token', newToken);
-    sessionStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
-    setUser(userData);
-    router.push('/');
+    try {
+      const response = await fetch(`${API_URL}/me`, {
+        headers: { 'Authorization': `Bearer ${newToken}` },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      const userData: User = await response.json();
+      sessionStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      router.push('/');
+    } catch (error) {
+      console.error('Login failed:', error);
+      // If we can't get user data, log them out.
+      logout();
+    }
   };
 
   const logout = () => {

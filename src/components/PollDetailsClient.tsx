@@ -12,20 +12,53 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { Skeleton } from './ui/skeleton';
+import Link from 'next/link';
 
-export default function PollDetailsClient({ initialPoll }: { initialPoll: Poll }) {
-  const [poll, setPoll] = useState<Poll>(initialPoll);
+const API_URL = 'http://localhost:8080/api';
+const WS_URL = 'ws://localhost:8080/ws';
+
+export default function PollDetailsClient({ pollId }: { pollId: string }) {
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const { toast } = useToast();
   const { token } = useAuth();
   
-  const wsUrl = typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws` : null;
-  const { lastMessage, isConnected } = useWebSocket(wsUrl, poll.id);
+  const { lastMessage, isConnected } = useWebSocket(WS_URL);
 
   useEffect(() => {
-    if (lastMessage?.type === 'vote_update' && lastMessage.poll_id === poll.id) {
+    const fetchPoll = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${API_URL}/polls/${pollId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Poll not found');
+          }
+          throw new Error('Failed to fetch poll data');
+        }
+        const data: Poll = await response.json();
+        setPoll(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchPoll();
+  }, [pollId, token]);
+
+  useEffect(() => {
+    if (lastMessage?.type === 'vote_update' && lastMessage.poll_id === pollId) {
         setPoll(currentPoll => {
+            if (!currentPoll) return null;
             const newOptions = currentPoll.options?.map(opt => {
                 const updatedResult = lastMessage.results.find((r: {id: string}) => r.id === opt.id);
                 return updatedResult ? { ...opt, vote_count: updatedResult.vote_count } : opt;
@@ -33,12 +66,13 @@ export default function PollDetailsClient({ initialPoll }: { initialPoll: Poll }
             return { ...currentPoll, options: newOptions };
         });
     }
-  }, [lastMessage, poll.id]);
+  }, [lastMessage, pollId]);
 
 
   const totalVotes = useMemo(() => {
+    if (!poll) return 0;
     return poll.options?.reduce((acc, option) => acc + option.vote_count, 0) || 0;
-  }, [poll.options]);
+  }, [poll?.options]);
 
   const handleVote = async () => {
     if (!selectedOption) {
@@ -47,22 +81,13 @@ export default function PollDetailsClient({ initialPoll }: { initialPoll: Poll }
     }
     setIsVoting(true);
     try {
-      // MOCK API CALL
-    //   const response = await fetch('/api/vote', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    //     body: JSON.stringify({ poll_id: poll.id, option_id: selectedOption }),
-    //   });
-    //   if (!response.ok) throw new Error('Failed to cast vote');
-      
-      // Manually update for instant feedback in mock
-      setPoll(currentPoll => {
-        const newOptions = currentPoll.options?.map(opt => 
-          opt.id === selectedOption ? { ...opt, vote_count: opt.vote_count + 1 } : opt
-        ) || [];
-        return { ...currentPoll, options: newOptions };
+      const response = await fetch(`${API_URL}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ poll_id: pollId, option_id: selectedOption }),
       });
-
+      if (!response.ok) throw new Error('Failed to cast vote');
+      
       toast({ title: 'Vote Cast!', description: 'Your vote has been recorded.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Vote Failed', description: error instanceof Error ? error.message : 'An unknown error occurred.' });
@@ -70,6 +95,29 @@ export default function PollDetailsClient({ initialPoll }: { initialPoll: Poll }
       setIsVoting(false);
     }
   };
+
+  if (isLoading) {
+    return <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <Skeleton className="lg:col-span-2 h-96" />
+      <Skeleton className="h-96" />
+    </div>;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-4">
+        <h1 className="text-4xl font-bold">Error</h1>
+        <p className="mt-2 text-muted-foreground">{error}</p>
+        <Button asChild className="mt-6">
+          <Link href="/">Back to Polls</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!poll) {
+    return <div>Poll not found.</div>
+  }
   
   const isPollActive = new Date(poll.ends_at) > new Date();
 

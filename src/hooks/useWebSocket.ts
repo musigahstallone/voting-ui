@@ -1,36 +1,48 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
-export function useWebSocket(url: string | null, pollId: string) {
+export function useWebSocket(url: string | null) {
   const [lastMessage, setLastMessage] = useState<any | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!url) return;
+    if (!url) {
+      if(ws.current) {
+        ws.current.close();
+        ws.current = null;
+        setIsConnected(false);
+      }
+      return;
+    };
 
-    // MOCK: Simulate connection and server sending updates for this specific poll
-    setIsConnected(true);
-    const interval = setInterval(() => {
-        const mockUpdate = {
-            type: "vote_update",
-            poll_id: pollId,
-            results: [
-                { id: "opt1", vote_count: 15 + Math.floor(Math.random() * 5) },
-                { id: "opt2", vote_count: 32 + Math.floor(Math.random() * 5) },
-                { id: "opt3", vote_count: 8 + Math.floor(Math.random() * 5) },
-                { id: "opt4", vote_count: 12 + Math.floor(Math.random() * 5) },
-            ]
-        };
-        // Directly set message to simulate receiving it
-        setLastMessage(mockUpdate);
-    }, 3000);
+    ws.current = new WebSocket(url);
+    ws.current.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+    }
+    ws.current.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    }
+    ws.current.onerror = (error) => {
+        console.error("WebSocket Error:", error);
+        setIsConnected(false);
+    }
+    ws.current.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setLastMessage(data);
+      } catch (e) {
+        console.error("Failed to parse websocket message:", e);
+      }
+    };
 
     return () => {
-      clearInterval(interval);
-      setIsConnected(false);
+      ws.current?.close();
     };
-  }, [url, pollId]);
+  }, [url]);
 
   return { lastMessage, isConnected };
 }

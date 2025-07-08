@@ -21,6 +21,8 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+const API_URL = 'http://localhost:8080/api';
+
 export default function RegisterPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -32,16 +34,16 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      // In a real app, this would be a fetch call to your API backend.
-      // const response = await fetch('/api/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-      // if (response.status !== 201) throw new Error('Registration failed. The student ID or email may already be in use.');
-      // await response.json();
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed. The student ID or email may already be in use.');
+      }
       
-      // Mocked successful registration for demonstration purposes.
       toast({ title: 'Registration Successful', description: 'You can now log in with your new account.' });
       router.push('/login');
     } catch (error) {

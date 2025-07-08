@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Vote, Loader2 } from 'lucide-react';
-import type { User } from '@/lib/types';
 
 const loginSchema = z.object({
   student_id: z.string().min(1, 'Student ID is required'),
@@ -19,6 +18,8 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+const API_URL = 'http://localhost:8080/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -31,26 +32,21 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      // In a real app, this would be a fetch call to your API backend.
-      // const response = await fetch('/api/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-      // if (!response.ok) throw new Error('Login failed. Please check your credentials.');
-      // const { token, user } = await response.json();
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
       
-      // Mocked successful login for demonstration purposes.
-      const mockToken = 'jwt_token_for_' + data.student_id;
-      const mockUser: User = { 
-        id: `user-${Math.random().toString(36).substr(2, 9)}`, 
-        student_id: data.student_id, 
-        name: 'Mock Student', 
-        email: `${data.student_id.toLowerCase()}@example.com`
-      };
+      if (!response.ok) {
+        throw new Error('Login failed. Please check your credentials.');
+      }
+
+      const { token, user } = await response.json();
       
-      toast({ title: 'Login Successful', description: 'Welcome back!' });
-      login(mockToken, mockUser);
+      toast({ title: 'Login Successful', description: `Welcome back, ${user}!` });
+      await login(token);
+
     } catch (error) {
       toast({
         variant: 'destructive',

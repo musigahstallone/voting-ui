@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Clock, User, FileQuestion } from 'lucide-react';
 import type { Poll } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 function PollCard({ poll }: { poll: Poll }) {
   const endsAt = new Date(poll.ends_at);
@@ -45,9 +46,12 @@ function PollCard({ poll }: { poll: Poll }) {
   );
 }
 
+const API_URL = 'http://localhost:8080/api';
+
 export default function HomePage() {
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -59,15 +63,19 @@ export default function HomePage() {
         const fetchPolls = async () => {
           setIsLoading(true);
           try {
-            // In a real app, you would fetch from /api/polls
-            const mockPolls: Poll[] = [
-              { id: 'poll1', title: 'Favorite Programming Language', description: 'What is your go-to language for new projects?', category: 'Technology', creator_id: 'user1', is_anonymous: false, is_active: true, starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), created_at: new Date().toISOString() },
-              { id: 'poll2', title: 'Best Pizza Topping', description: 'The ultimate debate. Choose wisely.', category: 'Food', creator_id: 'user2', is_anonymous: true, is_active: true, starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), created_at: new Date().toISOString() },
-              { id: 'poll3', title: 'Next Holiday Destination', description: 'Where should we go for our next team vacation?', category: 'Travel', creator_id: 'user1', is_anonymous: false, is_active: true, starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), created_at: new Date().toISOString() },
-            ];
-            setPolls(mockPolls);
+            const response = await fetch(`${API_URL}/polls`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch polls');
+            const data = await response.json();
+            setPolls(data || []);
           } catch (error) {
             console.error('Failed to fetch polls:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'Could not load polls. Please try again later.'
+            });
           } finally {
             setIsLoading(false);
           }
@@ -75,7 +83,7 @@ export default function HomePage() {
         fetchPolls();
       }
     }
-  }, [token, authLoading, router]);
+  }, [token, authLoading, router, toast]);
 
   if (authLoading || (!token && !authLoading)) {
     return (
