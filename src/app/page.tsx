@@ -46,7 +46,7 @@ function PollCard({ poll }: { poll: Poll }) {
   );
 }
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'https://localhost:8080/api';
 
 export default function HomePage() {
   const { token, isLoading: authLoading } = useAuth();

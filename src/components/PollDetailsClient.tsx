@@ -15,8 +15,8 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { Skeleton } from './ui/skeleton';
 import Link from 'next/link';
 
-const API_URL = 'http://localhost:8080/api';
-const WS_URL = 'ws://localhost:8080/ws';
+const API_URL = 'https://localhost:8080/api';
+const WS_URL = 'wss://localhost:8080/ws';
 
 export default function PollDetailsClient({ pollId }: { pollId: string }) {
   const [poll, setPoll] = useState<Poll | null>(null);
