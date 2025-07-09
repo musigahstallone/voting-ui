@@ -15,8 +15,8 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { Skeleton } from './ui/skeleton';
 import Link from 'next/link';
 
-const API_URL = process.env.API_URL || 'https://localhost:8080/api';
-const WS_URL = process.env.WS_URL || 'wss://localhost:8080/ws';
+const API_URL = 'http://localhost:8080/api';
+const WS_URL = 'ws://localhost:8080/ws';
 
 export default function PollDetailsClient({ pollId }: { pollId: string }) {
   const [poll, setPoll] = useState<Poll | null>(null);
@@ -31,7 +31,7 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
 
   useEffect(() => {
     const fetchPoll = async () => {
-      if (!token) return;
+      if (!token || !pollId) return;
       setIsLoading(true);
       setError(null);
       try {
@@ -70,8 +70,8 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
 
 
   const totalVotes = useMemo(() => {
-    if (!poll) return 0;
-    return poll.options?.reduce((acc, option) => acc + option.vote_count, 0) || 0;
+    if (!poll || !poll.options) return 0;
+    return poll.options.reduce((acc, option) => acc + (option.vote_count || 0), 0);
   }, [poll?.options]);
 
   const handleVote = async () => {
@@ -107,15 +107,12 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
         });
         return;
       }
-
+      
       if (!response.ok) {
-        throw new Error('Failed to cast vote');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to cast vote' }));
+        throw new Error(errorData.message || 'Failed to cast vote');
       }
 
-      toast({
-        title: 'Vote Cast!',
-        description: 'Your vote has been recorded.',
-      });
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -207,12 +204,12 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           {poll.options?.map(option => {
-            const percentage = totalVotes > 0 ? (option.vote_count / totalVotes) * 100 : 0;
+            const percentage = totalVotes > 0 ? ((option.vote_count || 0) / totalVotes) * 100 : 0;
             return (
               <div key={option.id}>
                 <div className="flex justify-between items-baseline mb-1">
                   <span className="font-medium">{option.text}</span>
-                  <span className="text-sm text-muted-foreground">{option.vote_count} votes</span>
+                  <span className="text-sm text-muted-foreground">{option.vote_count || 0} votes</span>
                 </div>
                 <Progress value={percentage} className="h-3" />
                 <p className="text-right text-xs text-muted-foreground mt-1">{percentage.toFixed(1)}%</p>

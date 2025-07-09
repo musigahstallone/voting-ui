@@ -30,7 +30,7 @@ const pollSchema = z.object({
 
 type PollFormValues = z.infer<typeof pollSchema>;
 
-const API_URL = process.env.API_URL || 'https://localhost:8080/api';
+const API_URL = 'http://localhost:8080/api';
 
 export default function CreatePollPage() {
   const router = useRouter();

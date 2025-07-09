@@ -19,7 +19,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const API_URL = process.env.API_URL || 'https://localhost:8080/api';
+const API_URL = 'http://localhost:8080/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -37,7 +37,6 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      console.log('Login request:', data);
 
       if (!response.ok) {
         throw new Error('Login failed. Please check your credentials.');

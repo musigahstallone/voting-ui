@@ -21,7 +21,7 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const API_URL = process.env.API_URL || 'https://localhost:8080/api';
+const API_URL = 'http://localhost:8080/api';
 
 export default function RegisterPage() {
   const { toast } = useToast();
