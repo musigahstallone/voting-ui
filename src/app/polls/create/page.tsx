@@ -30,7 +30,7 @@ const pollSchema = z.object({
 
 type PollFormValues = z.infer<typeof pollSchema>;
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.API_URL || 'https://localhost:8080/api';
 
 export default function CreatePollPage() {
   const router = useRouter();
@@ -77,10 +77,10 @@ export default function CreatePollPage() {
   const onSubmit = async (data: PollFormValues) => {
     const payload = { ...data, options: data.options.map(opt => opt.value) };
     try {
-      const response = await fetch(`${API_URL}/polls`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
-        body: JSON.stringify(payload) 
+      const response = await fetch(`${API_URL}/polls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
       });
       if (!response.ok) throw new Error('Failed to create poll');
       const newPoll = await response.json();
@@ -141,7 +141,7 @@ export default function CreatePollPage() {
                     <FormMessage />
                   </FormItem>
                 )} />
-                
+
                 <div>
                   <FormLabel>Options</FormLabel>
                   <div className="space-y-2 mt-2">
@@ -167,18 +167,18 @@ export default function CreatePollPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <FormField control={form.control} name="starts_at" render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Start Date</FormLabel>
-                          <FormControl><Input type="datetime-local" {...field} /></FormControl>
-                          <FormMessage />
-                      </FormItem>
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="ends_at" render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>End Date</FormLabel>
-                          <FormControl><Input type="datetime-local" {...field} /></FormControl>
-                          <FormMessage />
-                      </FormItem>
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 </div>
 

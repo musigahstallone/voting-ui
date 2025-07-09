@@ -15,8 +15,8 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { Skeleton } from './ui/skeleton';
 import Link from 'next/link';
 
-const API_URL = 'http://localhost:8080/api';
-const WS_URL = 'ws://localhost:8080/ws';
+const API_URL = process.env.API_URL || 'https://localhost:8080/api';
+const WS_URL = process.env.WS_URL || 'wss://localhost:8080/ws';
 
 export default function PollDetailsClient({ pollId }: { pollId: string }) {
   const [poll, setPoll] = useState<Poll | null>(null);
@@ -26,7 +26,7 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
   const [isVoting, setIsVoting] = useState(false);
   const { toast } = useToast();
   const { token } = useAuth();
-  
+
   const { lastMessage, isConnected } = useWebSocket(WS_URL);
 
   useEffect(() => {
@@ -57,14 +57,14 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
 
   useEffect(() => {
     if (lastMessage?.type === 'vote_update' && lastMessage.poll_id === pollId) {
-        setPoll(currentPoll => {
-            if (!currentPoll) return null;
-            const newOptions = currentPoll.options?.map(opt => {
-                const updatedResult = lastMessage.results.find((r: {id: string}) => r.id === opt.id);
-                return updatedResult ? { ...opt, vote_count: updatedResult.vote_count } : opt;
-            }) || [];
-            return { ...currentPoll, options: newOptions };
-        });
+      setPoll(currentPoll => {
+        if (!currentPoll) return null;
+        const newOptions = currentPoll.options?.map(opt => {
+          const updatedResult = lastMessage.results.find((r: { id: string }) => r.id === opt.id);
+          return updatedResult ? { ...opt, vote_count: updatedResult.vote_count } : opt;
+        }) || [];
+        return { ...currentPoll, options: newOptions };
+      });
     }
   }, [lastMessage, pollId]);
 
@@ -76,25 +76,68 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
 
   const handleVote = async () => {
     if (!selectedOption) {
-      toast({ variant: 'destructive', title: 'No option selected', description: 'Please choose an option to vote.' });
+      toast({
+        variant: 'destructive',
+        title: 'No option selected',
+        description: 'Please choose an option to vote.',
+      });
       return;
     }
+
     setIsVoting(true);
     try {
       const response = await fetch(`${API_URL}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ poll_id: pollId, option_id: selectedOption }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          poll_id: pollId,
+          option_id: selectedOption,
+        }),
       });
-      if (!response.ok) throw new Error('Failed to cast vote');
-      
-      toast({ title: 'Vote Cast!', description: 'Your vote has been recorded.' });
+
+      if (response.status === 409) {
+        const message = await response.text();
+        toast({
+          variant: 'destructive',
+          title: 'Duplicate Vote',
+          description: message || 'You have already voted in this poll.',
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to cast vote');
+      }
+
+      toast({
+        title: 'Vote Cast!',
+        description: 'Your vote has been recorded.',
+      });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Vote Failed', description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+      toast({
+        variant: 'destructive',
+        title: 'Vote Failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      });
     } finally {
       setIsVoting(false);
     }
   };
+
+  if (!token) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-4">
+        <h1 className="text-4xl font-bold">Unauthorized</h1>
+        <p className="mt-2 text-muted-foreground">Please log in to view this poll.</p>
+        <Button asChild className="mt-6">
+          <Link href="/login">Log In</Link>
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -118,7 +161,7 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
   if (!poll) {
     return <div>Poll not found.</div>
   }
-  
+
   const isPollActive = new Date(poll.ends_at) > new Date();
 
   return (
@@ -148,12 +191,12 @@ export default function PollDetailsClient({ pollId }: { pollId: string }) {
                 Submit Vote
               </Button>
             ) : (
-                <p className="font-bold text-destructive p-4 bg-destructive/10 rounded-md">This poll has ended.</p>
+              <p className="font-bold text-destructive p-4 bg-destructive/10 rounded-md">This poll has ended.</p>
             )}
           </div>
         </CardContent>
       </Card>
-      
+
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">

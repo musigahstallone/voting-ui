@@ -19,7 +19,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.API_URL || 'https://localhost:8080/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -37,13 +37,14 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+      console.log('Login request:', data);
+
       if (!response.ok) {
         throw new Error('Login failed. Please check your credentials.');
       }
 
       const { token, user } = await response.json();
-      
+
       toast({ title: 'Login Successful', description: `Welcome back, ${user}!` });
       await login(token);
 
@@ -60,9 +61,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-            <div className="flex justify-center items-center mb-4">
-                <Vote className="h-10 w-10 text-primary" />
-            </div>
+          <div className="flex justify-center items-center mb-4">
+            <Vote className="h-10 w-10 text-primary" />
+          </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Welcome to VoteStream</CardTitle>
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>

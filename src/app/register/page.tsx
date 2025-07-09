@@ -21,7 +21,7 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.API_URL || 'https://localhost:8080/api';
 
 export default function RegisterPage() {
   const { toast } = useToast();
@@ -43,7 +43,7 @@ export default function RegisterPage() {
       if (!response.ok) {
         throw new Error('Registration failed. The student ID or email may already be in use.');
       }
-      
+
       toast({ title: 'Registration Successful', description: 'You can now log in with your new account.' });
       router.push('/login');
     } catch (error) {

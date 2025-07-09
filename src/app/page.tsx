@@ -46,7 +46,7 @@ function PollCard({ poll }: { poll: Poll }) {
   );
 }
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.API_URL || 'https://localhost:8080/api';
 
 export default function HomePage() {
   const { token, isLoading: authLoading } = useAuth();
@@ -92,7 +92,7 @@ export default function HomePage() {
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -105,7 +105,7 @@ export default function HomePage() {
             </Link>
           </Button>
         </div>
-        
+
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
